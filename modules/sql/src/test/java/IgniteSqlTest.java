@@ -17,7 +17,6 @@
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
@@ -40,8 +39,8 @@ import org.apache.ignite.query.sql.TxSession;
 import org.apache.ignite.query.sql.async.AsyncMultiResultSet;
 import org.apache.ignite.query.sql.async.AsyncResultSet;
 import org.apache.ignite.query.sql.reactive.ReactiveResultSet;
-import org.apache.ignite.schema.ColumnType;
-import org.apache.ignite.table.Table;
+import org.apache.ignite.schema.definition.ColumnType;
+import org.apache.ignite.table.RecordView;
 import org.apache.ignite.table.Tuple;
 import org.apache.ignite.tx.IgniteTransactions;
 import org.apache.ignite.tx.Transaction;
@@ -113,7 +112,7 @@ public class IgniteSqlTest {
 
     @Test
     public void testSyncSql2() {
-        Table tbl = getTable();
+        RecordView<Tuple> tbl = getTable();
 
         // Starts new TX.
         TxSession txSession = queryMgr.newSession().withNewTransaction();
@@ -153,7 +152,7 @@ public class IgniteSqlTest {
 
     @Test
     public void testAsyncSql() throws ExecutionException, InterruptedException {
-        Table table = getTable();
+        RecordView<Tuple> table = getTable();
 
         class AsyncPageProcessor implements Function<AsyncResultSet, CompletionStage<AsyncResultSet>> {
             @Override public CompletionStage<AsyncResultSet> apply(AsyncResultSet rs) {
@@ -181,7 +180,7 @@ public class IgniteSqlTest {
 
     @Test
     public void testAsyncMultiStatementSql() throws ExecutionException, InterruptedException {
-        Table table = getTable();
+        RecordView<Tuple> table = getTable();
 
         class AsyncPageProcessor implements Function<AsyncMultiResultSet, CompletionStage<AsyncMultiResultSet>> {
             @Override public CompletionStage<AsyncMultiResultSet> apply(AsyncMultiResultSet rs) {
@@ -260,8 +259,8 @@ public class IgniteSqlTest {
         assertTrue(meta.column(1).nullable());
     }
 
-    @NotNull private Table getTable() {
-        SchemaDescriptor schema = new SchemaDescriptor(UUID.randomUUID(), 42,
+    @NotNull private RecordView<Tuple> getTable() {
+        SchemaDescriptor schema = new SchemaDescriptor(42,
             new Column[]{new Column("id", NativeTypes.INT64, false)},
             new Column[]{new Column("val", NativeTypes.STRING, true)}
         );
@@ -269,7 +268,7 @@ public class IgniteSqlTest {
         SchemaRegistry schemaReg = Mockito.mock(SchemaRegistry.class);
         Mockito.when(schemaReg.schema()).thenReturn(schema);
 
-        Table tbl = Mockito.mock(Table.class);
+        RecordView<Tuple> tbl = (RecordView<Tuple>)Mockito.mock(RecordView.class);
         Mockito.when(tbl.insertAsync(Mockito.any())).thenReturn(CompletableFuture.completedFuture(null));
         Mockito.when(tbl.getAsync(Mockito.any())).thenAnswer(ans -> CompletableFuture.completedFuture(ans.getArgument(0)));
         Mockito.when(tbl.withTransaction(Mockito.any())).thenAnswer(Answers.RETURNS_SELF);

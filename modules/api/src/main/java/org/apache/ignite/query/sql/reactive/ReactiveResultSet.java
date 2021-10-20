@@ -52,5 +52,5 @@ public interface ReactiveResultSet extends Flow.Publisher<SqlRow> {
      *
      * @return {@code True} if conditional query applied, {@code false} otherwise.
      */
-    Flow.Publisher<Boolean>  wasApplied();
+    Flow.Publisher<Boolean> wasApplied();
 }

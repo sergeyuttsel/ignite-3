@@ -17,7 +17,7 @@
 
 package org.apache.ignite.query.sql;
 
-import org.apache.ignite.schema.ColumnType;
+import org.apache.ignite.schema.definition.ColumnType;
 
 /**
  * Column metadata.
