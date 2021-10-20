@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import io.netty.util.ResourceLeakDetector;
-import org.apache.ignite.app.Ignite;
+import org.apache.ignite.Ignite;
 import org.apache.ignite.client.fakes.FakeIgnite;
 import org.apache.ignite.client.handler.ClientHandlerModule;
 import org.apache.ignite.configuration.schemas.clientconnector.ClientConnectorConfiguration;
@@ -85,7 +85,7 @@ public abstract class AbstractClientTest {
 
     public static Ignite startClient(String... addrs) {
         if (addrs == null || addrs.length == 0)
-            addrs = new String[]{"127.0.0.2:" + serverPort};
+            addrs = new String[]{"127.0.0.1:" + serverPort};
 
         var builder = IgniteClient.builder().addresses(addrs);
 
@@ -110,7 +110,7 @@ public abstract class AbstractClientTest {
                 local -> local.changePort(port).changePortRange(portRange)
         ).join();
 
-        var module = new ClientHandlerModule(ignite.tables(), cfg);
+        var module = new ClientHandlerModule(((FakeIgnite)ignite).queryEngine(), ignite.tables(), cfg);
         module.start();
 
         return new IgniteBiTuple<>(module, cfg);
@@ -128,7 +128,7 @@ public abstract class AbstractClientTest {
             return;
         }
 
-        assertEquals(x.columnCount(), y.columnCount());
+        assertEquals(x.columnCount(), y.columnCount(), x + " != " + y);
 
         for (var i = 0; i < x.columnCount(); i++) {
             assertEquals(x.columnName(i), y.columnName(i));

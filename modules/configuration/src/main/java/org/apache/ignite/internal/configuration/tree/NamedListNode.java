@@ -30,13 +30,15 @@ import org.apache.ignite.configuration.NamedListChange;
 import org.apache.ignite.configuration.annotation.NamedConfigValue;
 import org.apache.ignite.internal.configuration.util.ConfigurationUtil;
 
+import static org.apache.ignite.internal.configuration.util.ConfigurationUtil.addDefaults;
+
 /**
  * Configuration node implementation for the collection of named {@link InnerNode}s. Unlike implementations of
  * {@link InnerNode}, this class is used for every named list in configuration.
  *
  * @param <N> Type of the {@link InnerNode} that is stored in named list node object.
  */
-public final class NamedListNode<N extends InnerNode> implements NamedListChange<N>, TraversableTreeNode, ConstructableTreeNode {
+public final class NamedListNode<N extends InnerNode> implements NamedListChange<N, N>, TraversableTreeNode, ConstructableTreeNode {
     /** Name of a synthetic configuration property that describes the order of elements in a named list. */
     public static final String ORDER_IDX = "<order>";
 
@@ -116,13 +118,13 @@ public final class NamedListNode<N extends InnerNode> implements NamedListChange
     }
 
     /** {@inheritDoc} */
-    @Override public NamedListChange<N> create(String key, Consumer<N> valConsumer) {
+    @Override public NamedListChange<N, N> create(String key, Consumer<N> valConsumer) {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(valConsumer, "valConsumer");
 
         checkNewKey(key);
 
-        ElementDescriptor<N> element = new ElementDescriptor<>(valSupplier.get());
+        ElementDescriptor<N> element = newElementDescriptor();
 
         map.put(key, element);
 
@@ -134,7 +136,7 @@ public final class NamedListNode<N extends InnerNode> implements NamedListChange
     }
 
     /** {@inheritDoc} */
-    @Override public NamedListChange<N> create(int index, String key, Consumer<N> valConsumer) {
+    @Override public NamedListChange<N, N> create(int index, String key, Consumer<N> valConsumer) {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(valConsumer, "valConsumer");
 
@@ -143,7 +145,7 @@ public final class NamedListNode<N extends InnerNode> implements NamedListChange
 
         checkNewKey(key);
 
-        ElementDescriptor<N> element = new ElementDescriptor<>(valSupplier.get());
+        ElementDescriptor<N> element = newElementDescriptor();
 
         map.putByIndex(index, key, element);
 
@@ -155,7 +157,7 @@ public final class NamedListNode<N extends InnerNode> implements NamedListChange
     }
 
     /** {@inheritDoc} */
-    @Override public NamedListChange<N> createAfter(String precedingKey, String key, Consumer<N> valConsumer) {
+    @Override public NamedListChange<N, N> createAfter(String precedingKey, String key, Consumer<N> valConsumer) {
         Objects.requireNonNull(precedingKey, "precedingKey");
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(valConsumer, "valConsumer");
@@ -165,7 +167,7 @@ public final class NamedListNode<N extends InnerNode> implements NamedListChange
 
         checkNewKey(key);
 
-        ElementDescriptor<N> element = new ElementDescriptor<>(valSupplier.get());
+        ElementDescriptor<N> element = newElementDescriptor();
 
         map.putAfter(precedingKey, key, element);
 
@@ -177,7 +179,7 @@ public final class NamedListNode<N extends InnerNode> implements NamedListChange
     }
 
     /** {@inheritDoc} */
-    @Override public final NamedListChange<N> createOrUpdate(String key, Consumer<N> valConsumer) {
+    @Override public final NamedListChange<N, N> createOrUpdate(String key, Consumer<N> valConsumer) {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(valConsumer, "valConsumer");
 
@@ -187,7 +189,7 @@ public final class NamedListNode<N extends InnerNode> implements NamedListChange
         ElementDescriptor<N> element = map.get(key);
 
         if (element == null) {
-            element = new ElementDescriptor<>(valSupplier.get());
+            element = newElementDescriptor();
 
             reverseIdMap.put(element.internalId, key);
         }
@@ -202,7 +204,7 @@ public final class NamedListNode<N extends InnerNode> implements NamedListChange
     }
 
     /** {@inheritDoc} */
-    @Override public NamedListChange<N> rename(String oldKey, String newKey) {
+    @Override public NamedListChange<N, N> rename(String oldKey, String newKey) {
         Objects.requireNonNull(oldKey, "oldKey");
         Objects.requireNonNull(newKey, "newKey");
 
@@ -241,7 +243,7 @@ public final class NamedListNode<N extends InnerNode> implements NamedListChange
     }
 
     /** {@inheritDoc} */
-    @Override public NamedListChange<N> delete(String key) {
+    @Override public NamedListChange<N, N> delete(String key) {
         Objects.requireNonNull(key, "key");
 
         if (map.containsKey(key))
@@ -346,6 +348,19 @@ public final class NamedListNode<N extends InnerNode> implements NamedListChange
     /** {@inheritDoc} */
     @Override public NamedListNode<N> copy() {
         return new NamedListNode<>(this);
+    }
+
+    /**
+     * Creates new element instance with initialized defaults.
+     *
+     * @return New element instance with initialized defaults.
+     */
+    private NamedListNode.ElementDescriptor<N> newElementDescriptor() {
+        N newElement = valSupplier.get();
+
+        addDefaults(newElement);
+
+        return new ElementDescriptor<>(newElement);
     }
 
     /**

@@ -18,10 +18,13 @@
 package org.apache.ignite.internal.table;
 
 import java.util.Collection;
-import java.util.UUID;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Flow.Publisher;
+
 import org.apache.ignite.internal.schema.BinaryRow;
-import org.apache.ignite.schema.SchemaMode;
+import org.apache.ignite.lang.IgniteUuid;
+import org.apache.ignite.schema.definition.SchemaManagementMode;
 import org.apache.ignite.tx.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -36,7 +39,7 @@ public interface InternalTable {
      *
      * @return Table id as UUID.
      */
-    @NotNull UUID tableId();
+    @NotNull IgniteUuid tableId();
 
     /**
      * Gets a name of the table.
@@ -50,12 +53,12 @@ public interface InternalTable {
      *
      * @return Schema mode.
      */
-    @NotNull SchemaMode schemaMode();
+    @NotNull SchemaManagementMode schemaMode();
 
     /**
      * Sets schema mode for the table.
      */
-    void schema(SchemaMode schemaMode);
+    void schema(SchemaManagementMode schemaMode);
 
     /**
      * Asynchronously gets a row with same key columns values as given one from the table.
@@ -195,5 +198,24 @@ public interface InternalTable {
     CompletableFuture<Collection<BinaryRow>> deleteAllExact(Collection<BinaryRow> rows,
         @Nullable Transaction tx);
 
-    //TODO: IGNTIE-14488. Add invoke() methods.
+    /**
+     * Scans given partition, providing {@link Publisher<BinaryRow>} that reactively notifies about partition rows.
+     *
+     * @param p The partition.
+     * @param tx The transaction.
+     * @return {@link Publisher<BinaryRow>} that reactively notifies about partition rows.
+     */
+    @NotNull Publisher<BinaryRow> scan(int p, @Nullable Transaction tx);
+
+    /**
+     * Gets a list of current table assignments.
+     *
+     * Returns a list where on the i-th place resides a node id that considered
+     * as a leader for the i-th partition on the moment of invocation.
+     *
+     * @return List of current assignments.
+     */
+    @NotNull List<String> assignments();
+
+    //TODO: IGNITE-14488. Add invoke() methods.
 }

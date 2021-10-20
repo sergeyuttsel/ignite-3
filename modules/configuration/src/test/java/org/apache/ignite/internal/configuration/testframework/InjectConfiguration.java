@@ -21,8 +21,10 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import org.apache.ignite.configuration.annotation.InternalConfiguration;
 import org.apache.ignite.internal.configuration.ConfigurationChanger;
 import org.apache.ignite.internal.configuration.ConfigurationRegistry;
+import org.intellij.lang.annotations.Language;
 
 /**
  * Annotation for injecting configuration instances into tests.
@@ -33,7 +35,7 @@ import org.apache.ignite.internal.configuration.ConfigurationRegistry;
  * values are not found.
  * <p/>
  * Although configuration instance is mutable, there's no {@link ConfigurationRegistry} and {@link ConfigurationChanger}
- * underneath. Listeners don't work either, be aware of that. Main point of the extension is to provide mocks.
+ * underneath. Main point of the extension is to provide mocks.
  *
  * @see ConfigurationExtension
  */
@@ -53,5 +55,14 @@ public @interface InjectConfiguration {
      *
      * @return Initial configuration values in HOCON format.
      */
+    @Language("HOCON")
     String value() default "mock : {}";
+
+    /**
+     * Array of configuration schema extensions. Every class in the array must be annotated with
+     * {@link InternalConfiguration} and extend some public configuration.
+     *
+     * @return Array of configuration schema extensions.
+     */
+    Class<?>[] extensions() default {};
 }

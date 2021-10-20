@@ -25,12 +25,18 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Flow.Publisher;
 import java.util.stream.Collectors;
+
+import javax.naming.OperationNotSupportedException;
 import org.apache.ignite.internal.schema.BinaryRow;
 import org.apache.ignite.internal.table.InternalTable;
-import org.apache.ignite.schema.SchemaMode;
+import org.apache.ignite.lang.IgniteInternalException;
+import org.apache.ignite.lang.IgniteUuid;
+import org.apache.ignite.schema.definition.SchemaManagementMode;
 import org.apache.ignite.tx.Transaction;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Dummy table storage implementation.
@@ -80,8 +86,8 @@ public class DummyInternalTableImpl implements InternalTable {
     }
 
     /** {@inheritDoc} */
-    @Override public @NotNull UUID tableId() {
-        return UUID.randomUUID();
+    @Override public @NotNull IgniteUuid tableId() {
+        return new IgniteUuid(UUID.randomUUID(), 0);
     }
 
     /** {@inheritDoc} */
@@ -90,12 +96,12 @@ public class DummyInternalTableImpl implements InternalTable {
     }
 
     /** {@inheritDoc} */
-    @Override public @NotNull SchemaMode schemaMode() {
-        return SchemaMode.STRICT_SCHEMA;
+    @Override public @NotNull SchemaManagementMode schemaMode() {
+        return SchemaManagementMode.STRICT;
     }
 
     /** {@inheritDoc} */
-    @Override public void schema(SchemaMode schemaMode) {
+    @Override public void schema(SchemaManagementMode schemaMode) {
     }
 
     /** {@inheritDoc} */
@@ -203,6 +209,7 @@ public class DummyInternalTableImpl implements InternalTable {
         return CompletableFuture.completedFuture(equalValues(row, oldRow) && store.put(key, newRow) != null);
     }
 
+    /** {@inheritDoc} */
     @Override public CompletableFuture<BinaryRow> getAndReplace(BinaryRow row, Transaction tx) {
         return null;
     }
@@ -221,17 +228,30 @@ public class DummyInternalTableImpl implements InternalTable {
         return CompletableFuture.completedFuture(equalValues(row, old) && store.remove(key) != null);
     }
 
+    /** {@inheritDoc} */
     @Override public CompletableFuture<BinaryRow> getAndDelete(BinaryRow row, Transaction tx) {
         return null;
     }
 
+    /** {@inheritDoc} */
     @Override public CompletableFuture<Collection<BinaryRow>> deleteAll(Collection<BinaryRow> rows, Transaction tx) {
         return null;
     }
 
+    /** {@inheritDoc} */
     @Override public CompletableFuture<Collection<BinaryRow>> deleteAllExact(Collection<BinaryRow> rows,
         Transaction tx) {
         return null;
+    }
+
+    /** {@inheritDoc} */
+    @Override public @NotNull Publisher<BinaryRow> scan(int p, @Nullable Transaction tx) {
+        throw new IgniteInternalException(new OperationNotSupportedException());
+    }
+
+    /** {@inheritDoc} */
+    @Override public @NotNull List<String> assignments() {
+        throw new IgniteInternalException(new OperationNotSupportedException());
     }
 
     /**

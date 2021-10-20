@@ -50,19 +50,6 @@ abstract class AbstractTableView {
     }
 
     /**
-     * @return Current transaction.
-     */
-    public @Nullable Transaction transaction() {
-        return tx;
-    }
-
-    /**
-     * @param tx The transaction.
-     * @return Transactional view.
-     */
-    public abstract AbstractTableView withTransaction(Transaction tx);
-
-    /**
      * Waits for operation completion.
      *
      * @param fut Future to wait to.
@@ -83,5 +70,12 @@ abstract class AbstractTableView {
             //TODO: IGNITE-14500 Replace with public exception with an error code (or unwrap?).
             throw new IgniteInternalException(e);
         }
+    }
+
+    /**
+     * @return Current transaction.
+     */
+    public @Nullable Transaction transaction() {
+        return tx;
     }
 }

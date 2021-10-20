@@ -18,13 +18,16 @@
 package org.apache.ignite.internal.testframework;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.BitSet;
 import java.util.Random;
 import java.util.function.BooleanSupplier;
 import org.apache.ignite.lang.IgniteInternalException;
+import org.apache.ignite.lang.LoggerMessageHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.junit.jupiter.api.TestInfo;
 
 import static java.lang.Thread.sleep;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -159,7 +162,7 @@ public final class IgniteTestUtils {
      * @return {@code True} if one of the causing exception is an instance of passed in classes,
      *      {@code false} otherwise.
      */
-    private static boolean hasCause(
+    public static boolean hasCause(
         @NotNull Throwable t,
         @NotNull Class<?> cls,
         @Nullable String msg
@@ -256,5 +259,15 @@ public final class IgniteTestUtils {
         }
 
         return sb.toString();
+    }
+
+    /**
+     * Creates a unique Ignite node name for the given test.
+     */
+    public static String testNodeName(TestInfo testInfo, int idx) {
+        return LoggerMessageHelper.format("{}_{}_{}",
+            testInfo.getTestClass().map(Class::getSimpleName).orElseGet(() -> "null"),
+            testInfo.getTestMethod().map(Method::getName).orElseGet(() -> "null"),
+            idx);
     }
 }
