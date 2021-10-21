@@ -35,7 +35,6 @@ import org.apache.ignite.query.sql.ResultSet;
 import org.apache.ignite.query.sql.ResultSetMetadata;
 import org.apache.ignite.query.sql.Session;
 import org.apache.ignite.query.sql.SqlRow;
-import org.apache.ignite.query.sql.TxSession;
 import org.apache.ignite.query.sql.async.AsyncMultiResultSet;
 import org.apache.ignite.query.sql.async.AsyncResultSet;
 import org.apache.ignite.query.sql.reactive.ReactiveResultSet;
@@ -49,7 +48,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.AdditionalAnswers;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -95,7 +93,7 @@ public class IgniteSqlTest {
             assertEquals(1, rs.updateCount());
 
             // Execute in TX.
-            TxSession txSession = queryMgr.newSession().withTransaction(tx);
+            Session txSession = queryMgr.newSession().withTransaction(tx);
 
             rs = txSession.execute("SELECT id, val FROM tbl WHERE id < {};", 10);
 
@@ -104,7 +102,7 @@ public class IgniteSqlTest {
                 assertTrue((r.stringValue("val")).startsWith("str"));
             }
 
-            txSession.commit();
+            tx.commit();
         });
 
         Mockito.verify(tx).commit();
@@ -115,7 +113,7 @@ public class IgniteSqlTest {
         RecordView<Tuple> tbl = getTable();
 
         // Starts new TX.
-        TxSession txSession = queryMgr.newSession().withNewTransaction();
+        Session txSession = queryMgr.newSession().withNewTransaction();
 
         ResultSet rs = txSession.execute("SELECT id, val FROM tbl WHERE id < {};", 10);
         SqlRow row = rs.iterator().next();
@@ -129,7 +127,7 @@ public class IgniteSqlTest {
 
     @Test
     public void testSyncMultiStatementSql() {
-        TxSession sess = queryMgr.newSession().withTransaction(tx);
+        Session sess = queryMgr.newSession().withTransaction(tx);
 
         MultiResultSet multiRs = sess.executeMulti(
             "CREATE TABLE tbl(id INTEGER PRIMARY KEY, val VARCHAR);" +
@@ -145,7 +143,7 @@ public class IgniteSqlTest {
 
         String str = rs.iterator().next().stringValue("val");
 
-        sess.commit();
+        tx.commit();
 
         Mockito.verify(tx).commit();
     }
@@ -281,17 +279,10 @@ public class IgniteSqlTest {
 
         Mockito.when(queryMgr.newSession()).thenReturn(session);
 
-        TxSession txSession = Mockito.mock(TxSession.class);
 
-        Mockito.when(txSession.transaction()).thenReturn(tx);
-        Mockito.when(session.withTransaction(Mockito.same(tx))).thenReturn(txSession);
-        Mockito.when(session.withNewTransaction()).thenReturn(txSession);
-        Mockito.doAnswer(ans -> AdditionalAnswers.delegatesTo(session).answer(ans)).when(txSession).execute(Mockito.any(), Mockito.any());
-        Mockito.doAnswer(ans -> AdditionalAnswers.delegatesTo(session).answer(ans)).when(txSession).executeAsync(Mockito.any(), Mockito.any());
-        Mockito.doAnswer(ans -> AdditionalAnswers.delegatesTo(session).answer(ans)).when(txSession).executeMulti(Mockito.any(), Mockito.any());
-        Mockito.doAnswer(ans -> AdditionalAnswers.delegatesTo(session).answer(ans)).when(txSession).executeMultiAsync(Mockito.any(), Mockito.any());
-        Mockito.doAnswer(ans -> AdditionalAnswers.delegatesTo(tx).answer(ans)).when(txSession).commit();
-        Mockito.doAnswer(ans -> AdditionalAnswers.delegatesTo(tx).answer(ans)).when(txSession).rollback();
+        Mockito.when(session.transaction()).thenReturn(tx);
+        Mockito.when(session.withTransaction(Mockito.same(tx))).thenAnswer(Answers.RETURNS_SELF);
+        Mockito.when(session.withNewTransaction()).thenAnswer(Answers.RETURNS_SELF);
 
         List<SqlRow> query1Resuls = List.of(
             new TestRow().set("id", 1L).set("val", "string 1").build(),
