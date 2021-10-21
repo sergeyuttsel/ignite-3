@@ -26,7 +26,7 @@ public interface ColumnMetadata {
     /**
      * Return column name in resultset.
      *
-     * Note: If row column doess not represents any table column, then generated name will be used.
+     * Note: If row column does not represent any table column, then generated name will be used.
      *
      * @return Column name.
      */
