@@ -45,7 +45,6 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.rmi.StubNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -67,6 +66,10 @@ import java.util.function.BiPredicate;
 import java.util.function.BooleanSupplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.apache.ignite.hlc.SystemHybridClock;
+import org.apache.ignite.hlc.SystemTimeProvider;
+import org.apache.ignite.hlc.TestHybridClock;
+import org.apache.ignite.hlc.TestTimeProvider;
 import org.apache.ignite.internal.raft.server.RaftGroupEventsListener;
 import org.apache.ignite.internal.testframework.WorkDirectory;
 import org.apache.ignite.internal.testframework.WorkDirectoryExtension;
@@ -74,8 +77,6 @@ import org.apache.ignite.lang.IgniteLogger;
 import org.apache.ignite.network.ClusterService;
 import org.apache.ignite.network.NetworkAddress;
 import org.apache.ignite.network.StaticNodeFinder;
-import org.apache.ignite.network.scalecube.TestScaleCubeClusterServiceFactory;
-import org.apache.ignite.raft.jraft.Closure;
 import org.apache.ignite.raft.jraft.Iterator;
 import org.apache.ignite.raft.jraft.JRaftUtils;
 import org.apache.ignite.raft.jraft.Node;
@@ -88,6 +89,7 @@ import org.apache.ignite.raft.jraft.closure.ReadIndexClosure;
 import org.apache.ignite.raft.jraft.closure.SynchronizedClosure;
 import org.apache.ignite.raft.jraft.closure.TaskClosure;
 import org.apache.ignite.raft.jraft.conf.Configuration;
+import org.apache.ignite.raft.jraft.core.Replicator.RpcResponse;
 import org.apache.ignite.raft.jraft.entity.EnumOutter;
 import org.apache.ignite.raft.jraft.entity.PeerId;
 import org.apache.ignite.raft.jraft.entity.Task;
@@ -2791,6 +2793,76 @@ public class ItNodeTest {
             waitForCondition(() -> ((MockStateMachine) follower.getOptions().getFsm()).getOnStopFollowingTimes() != 0, 1_000);
 
         assertFalse(res, "The follower shouldn't stop following");
+    }
+
+    @Test
+    public void test1() throws Exception {
+        // start five nodes
+        List<PeerId> peers = TestUtils.generatePeers(2);
+
+        cluster = new TestCluster("unitest", dataPath, peers, 3_000, testInfo);
+
+        List<TestTimeProvider> timeProviders = new ArrayList<>();
+        List<TestHybridClock> clocks = new ArrayList<>();
+
+        for (PeerId peer : peers) {
+            RaftOptions opts = new RaftOptions();
+            opts.setElectionHeartbeatFactor(4); // Election timeout divisor.
+            TestTimeProvider timeProvider = new TestTimeProvider(0);
+            timeProviders.add(timeProvider);
+            TestHybridClock clock = new TestHybridClock(timeProvider);
+            clocks.add(clock);
+            assertTrue(cluster.start(peer.getEndpoint(), false, 300, false, null, opts, clock));
+        }
+
+        List<NodeImpl> nodes = cluster.getNodes();
+
+        List<RpcClientEx> senders = new ArrayList<>();
+
+        // Block only one vote message.
+        for (NodeImpl node : nodes) {
+            RpcClientEx rpcClientEx = sender(node);
+            senders.add(rpcClientEx);
+            rpcClientEx.recordMessages((msg, nodeId) -> {
+//                if (msg instanceof RpcRequests.RequestVoteRequest ||
+//                        msg instanceof RpcRequests.RequestVoteResponse ||
+//                        msg instanceof RpcRequests.AppendEntriesRequest ||
+//                        msg instanceof RpcRequests.AppendEntriesResponse) {
+//                    return true;
+//                }
+//
+//                return false;
+                return true;
+            });
+//            rpcClientEx.blockMessages((msg, nodeId) -> {
+//                if (msg instanceof RpcRequests.RequestVoteRequest ||
+//                        msg instanceof RpcRequests.RequestVoteResponse ||
+//                        msg instanceof RpcRequests.AppendEntriesRequest ||
+//                        msg instanceof RpcRequests.AppendEntriesResponse) {
+//                    return false;
+//                }
+//
+//                return true;
+//            });
+        }
+
+        cluster.waitLeader();
+        Node leader = cluster.getLeader();
+        cluster.ensureLeader(leader);
+
+        RpcClientEx client = sender(leader);
+
+//        client.stopBlock(1); // Unblock vote message.
+
+        // The follower shouldn't stop following on receiving stale vote request.
+//        Node follower = cluster.getNode(new Endpoint(NetworkAddress.from(guard.get())));
+
+//        boolean res =
+//            waitForCondition(() -> ((MockStateMachine) follower.getOptions().getFsm()).getOnStopFollowingTimes() != 0, 1_000);
+
+//        assertFalse(res, "The follower shouldn't stop following");
+        System.out.println();
+
     }
 
     @Test
